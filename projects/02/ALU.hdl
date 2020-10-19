@@ -76,16 +76,4 @@ CHIP ALU {
 
     // ng calculation
     And(a=w3, b=true, out=ng); 
-
-
-
-
-
-
-
-    
-
-
-
-
 }
