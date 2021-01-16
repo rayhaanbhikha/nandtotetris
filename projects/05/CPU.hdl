@@ -40,4 +40,61 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    // Decode c instruction. Control bits.
+    Mux(a=false, b=instruction[12], sel=instruction[15], out=cA);
+    Mux(a=false, b=instruction[11], sel=instruction[15], out=cC1);
+    Mux(a=false, b=instruction[10], sel=instruction[15], out=cC2);
+    Mux(a=false, b=instruction[9], sel=instruction[15], out=cC3);
+    Mux(a=false, b=instruction[8], sel=instruction[15], out=cC4);
+    Mux(a=false, b=instruction[7], sel=instruction[15], out=cC5);
+    Mux(a=false, b=instruction[6], sel=instruction[15], out=cC6);
+    Mux(a=false, b=instruction[5], sel=instruction[15], out=cD1);
+    Mux(a=false, b=instruction[4], sel=instruction[15], out=cD2);
+    Mux(a=false, b=instruction[3], sel=instruction[15], out=cD3);
+    Mux(a=false, b=instruction[2], sel=instruction[15], out=cJ1);
+    Mux(a=false, b=instruction[1], sel=instruction[15], out=cJ2);
+    Mux(a=false, b=instruction[0], sel=instruction[15], out=cJ3);
+
+    // is c instruction or loading constant into A reg val.
+    Mux16(a=instruction, b=aluOutput, sel=instruction[15], out=newARegVal);
+
+    // d1
+    // d1 is 1 or instr[15]=0.
+    Not(in=instruction[15], out=isA);
+    Or(a=cD1, b=isA, out=shouldLoadA);
+    ARegister(in=newARegVal, load=shouldLoadA, out=aRegVal);
+
+    DRegister(in=aluOutput, load=cD2, out=dRegVal);
+
+    // d2 
+    Mux16(a=aRegVal, b=inM, sel=cA, out=aORm);
+
+    ALU(x=dRegVal, y=aORm, zx=cC1, nx=cC2, zy=cC3, ny=cC4, f=cC5, no=cC6, out=aluOutput, zr=zr, ng=ng);
+
+    
+    // // j1 out < 0
+    And(a=cJ1, b=ng, out=j1);
+
+    // // j2 out = 0
+    And(a=cJ2, b=zr, out=j2);
+
+    // // j3 out > 0
+    Not(in=zr, out=notZR);
+    Not(in=ng, out=notNG);
+    And(a=notZR, b=notNG, out=isPos);
+    And(a=cJ3, b=isPos, out=j3);
+
+    // // outputs
+    Mux16(a=aRegVal, b[0..15]=false, sel=false, out[0..14]=addressM);
+
+    Mux(a=cD3, b=false, sel=false, out=writeM); //pipe d3 -> writeM
+    Mux16(a=aluOutput, b[0..15]=false, sel=false, out=outM); //pipe ALU output-> outM
+
+    //  j123 is 1 if any of j1,j2,j3 =1.
+    Or(a=j1, b=j2, out=j12);
+    Or(a=j12, b=j3, out=j123);
+
+    // Not(in=j123, out=shouldIncrement);
+    PC(in=aRegVal, load=j123, inc=true, reset=reset, out[0..14]=pc);
 }
